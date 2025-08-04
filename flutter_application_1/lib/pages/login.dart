@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/register.dart';
-import 'package:flutter_application_1/pages/showtip.dart';
+// import 'package:flutter_application_1/pages/showtip.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
@@ -24,11 +26,20 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login(String phone, String password) {
-    log(phoneNum.text);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ShowTripPage()),
-    );
+    var data = {"phone": "0817399999", "password": "1111"};
+    print(data);
+    http
+        .post(
+          Uri.parse('http://10.160.49.241:3333/customers/login'),
+          headers: {"Content-Type": "application/json; charset=utf-8"},
+          body: jsonEncode(data),
+        )
+        .then((value) {
+          print(value.body);
+        })
+        .catchError((error) {
+          log('Error: $error');
+        });
   }
 
   @override
@@ -51,11 +62,8 @@ class _LoginPageState extends State<LoginPage> {
                   const Text("หมายเลขโทรศัพท์"),
                   const SizedBox(height: 5),
                   TextField(
-                    // onChanged: (value) {
-                    //   phoneNumber = value;
-                    // },
-                    // controller เอาไว้ควบคุมค่า
-                    controller: phoneNum,
+                    controller: phoneController,
+                    // controller: phoneNum,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -68,6 +76,7 @@ class _LoginPageState extends State<LoginPage> {
                   const Text("รหัสผ่าน"),
                   const SizedBox(height: 5),
                   TextField(
+                    controller: passwordController,
                     obscureText: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
