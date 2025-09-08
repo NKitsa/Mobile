@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // เพิ่มบรรทัดนี้
+import 'package:flutter_application_1/model/req/res/res.dart';
 import 'package:flutter_application_1/pages/register.dart';
 import 'package:flutter_application_1/pages/showtip.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_application_1/model/req/res/res.dart';
+import 'package:flutter_application_1/model/req/req.dart';
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
@@ -27,16 +30,36 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login(String phone, String password) {
-    var data = {"phone": phone, "password": password}; // ใช้ข้อมูลที่กรอกจริง
-    print(data);
+    // วิธีที่ 1: ใช้ custom class (ถ้ามี)
+    CustomerLoginGetReqDart req = CustomerLoginGetReqDart(
+      phone: phone, // ใช้ parameter จริงแทน hardcode
+      password: password,
+    );
+
     http
         .post(
           Uri.parse('http://192.168.1.105:3000/customers/login'),
           headers: {"Content-Type": "application/json; charset=utf-8"},
-          body: jsonEncode(data),
+          body: customerLoginGetReqDartToJson(req), // ใช้ toJson function
         )
         .then((value) {
-          print(value.body);
+          log(value.body);
+          if (value.statusCode == 200) {
+            CustomerLoginPostResDart customerLoginPostResponse =
+                customerLoginPostResDartFromJson(value.body);
+            log(customerLoginPostResponse.customer.fullname);
+            log(customerLoginPostResponse.customer.email);
+
+            // นำทางไป ShowTripPage
+            // Navigator.pushReplacement(
+            //   context,
+            //   MaterialPageRoute(
+            //     builder: (context) => ShowTripPage(cid: customerLoginPostResponse.customer.idx),
+            //   ),
+            // );
+          } else {
+            log('Login failed: ${value.statusCode}');
+          }
         })
         .catchError((error) {
           log('Error: $error');

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_application_1/model/req/register.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -62,22 +63,32 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    final url = Uri.parse('http://192.168.1.105:3000/customers'); // แก้ไข URL
+    // ✅ สร้าง CustomerRegisterPostReqDart object
+    final registerData = CustomerRegisterPostReqDart(
+      fullname: user,
+      phone: phone,
+      email: email,
+      image: "", // ใส่ค่าว่างไว้ก่อน หรือจะให้ user upload รูปภาพก็ได้
+      password: password,
+    );
+
+    final url = Uri.parse('http://192.168.1.105:3000/customers');
     print('POST ไปยัง /customers: $url');
+    print('ข้อมูลที่ส่ง: ${customerRegisterPostReqDartToJson(registerData)}');
 
     http
         .post(
           url,
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'user': user,
-            'phone': phone,
-            'email': email,
-            'password': password,
-          }),
+          body: customerRegisterPostReqDartToJson(
+            registerData,
+          ), // ใช้โมเดลในการแปลง JSON
         )
         .then((response) {
-          if (response.statusCode == 200) {
+          print('Response status: ${response.statusCode}');
+          print('Response body: ${response.body}');
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
             setState(() {
               errorText = "✅ ลงทะเบียนสำเร็จ!";
             });
@@ -92,6 +103,7 @@ class _RegisterPageState extends State<RegisterPage> {
           }
         })
         .catchError((e) {
+          print('Error: $e');
           setState(() {
             errorText = "❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: $e";
           });
