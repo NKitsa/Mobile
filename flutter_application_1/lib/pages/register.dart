@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 class RegisterPage extends StatefulWidget {
@@ -45,7 +46,23 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    final url = Uri.parse('http://10.160.49.241:3333/cutomers');
+    // ✅ เช็กรูปแบบอีเมล
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      setState(() {
+        errorText = "รูปแบบอีเมลไม่ถูกต้อง";
+      });
+      return;
+    }
+
+    // ✅ เช็กความยาวหมายเลขโทรศัพท์
+    if (phone.length < 10) {
+      setState(() {
+        errorText = "หมายเลขโทรศัพท์ต้องมีอย่างน้อย 10 หลัก";
+      });
+      return;
+    }
+
+    final url = Uri.parse('http://10.160.49.241:3333/customers'); // แก้ไข URL
     print('POST ไปยัง /customers: $url');
 
     http
@@ -64,6 +81,10 @@ class _RegisterPageState extends State<RegisterPage> {
             setState(() {
               errorText = "✅ ลงทะเบียนสำเร็จ!";
             });
+            // กลับไปหน้า Login หลังจาก 2 วินาที
+            Future.delayed(Duration(seconds: 2), () {
+              Navigator.pop(context);
+            });
           } else {
             setState(() {
               errorText = "❌ ลงทะเบียนไม่สำเร็จ: ${response.body}";
@@ -80,18 +101,24 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ลงทะเบียนสมาชิกใหม่')),
+      backgroundColor: const Color(0xFFFDEEFF),
+      appBar: AppBar(
+        title: const Text('ลงทะเบียนสมาชิกใหม่'),
+        backgroundColor: const Color(0xFFFDEEFF),
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              buildField('ชื่อนามสกุล', userController),
+              buildField('ชื่อ-นามสกุล', userController),
               buildField(
                 'หมายเลขโทรศัพท์',
                 phoneController,
-                type: TextInputType.phone,
+                type: TextInputType.number,
+                isPhone: true,
               ),
               buildField(
                 'อีเมล',
@@ -100,14 +127,40 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               buildField('รหัสผ่าน', passwordController, obscure: true),
               buildField('ยืนยันรหัสผ่าน', autpassController, obscure: true),
+
               const SizedBox(height: 20),
+
               if (errorText.isNotEmpty)
-                Text(errorText, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: errorText.contains('✅')
+                        ? Colors.green.shade50
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: errorText.contains('✅')
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                  child: Text(
+                    errorText,
+                    style: TextStyle(
+                      color: errorText.contains('✅')
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 20),
+
               ElevatedButton(
                 onPressed: register,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
@@ -115,7 +168,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 child: const Text(
                   'สมัครสมาชิก',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ],
@@ -130,23 +183,52 @@ class _RegisterPageState extends State<RegisterPage> {
     TextEditingController controller, {
     TextInputType type = TextInputType.text,
     bool obscure = false,
+    bool isPhone = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
         const SizedBox(height: 5),
         TextField(
           controller: controller,
           keyboardType: type,
           obscureText: obscure,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          inputFormatters: isPhone
+              ? [FilteringTextInputFormatter.digitsOnly]
+              : null,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            fillColor: Colors.white,
             filled: true,
+            hintText: _getHintText(label),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 15),
       ],
     );
+  }
+
+  String _getHintText(String label) {
+    switch (label) {
+      case 'ชื่อ-นามสกุล':
+        return 'กรอกชื่อและนามสกุล';
+      case 'หมายเลขโทรศัพท์':
+        return 'เช่น 0812345678';
+      case 'อีเมล':
+        return 'เช่น example@email.com';
+      case 'รหัสผ่าน':
+        return 'กรอกรหัสผ่าน';
+      case 'ยืนยันรหัสผ่าน':
+        return 'กรอกรหัสผ่านอีกครั้ง';
+      default:
+        return '';
+    }
   }
 }

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // เพิ่มบรรทัดนี้
 import 'package:flutter_application_1/pages/register.dart';
-import 'package:http/http.dart' as http;
 import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
@@ -17,8 +17,8 @@ class _LoginPageState extends State<LoginPage> {
   TextEditingController phoneNum = TextEditingController();
   TextEditingController phoneController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
   void register() {
-    // การสลับหน้าข้อมูลหน้าเก่ายังคงเดิม
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => RegisterPage()),
@@ -26,7 +26,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login(String phone, String password) {
-    var data = {"phone": "0817399999", "password": "1111"};
+    var data = {"phone": phone, "password": password}; // ใช้ข้อมูลที่กรอกจริง
     print(data);
     http
         .post(
@@ -45,14 +45,11 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDEEFF), // สีพื้นหลังชมพูอ่อน
+      backgroundColor: const Color(0xFFFDEEFF),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // รูปภาพด้านบน
-            Image.asset(
-              "asset/Zone25621029104150.jpg",
-            ), // เปลี่ยน path ให้ตรงกับโปรเจค
+            Image.asset("asset/Zone25621029104150.jpg"),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
@@ -63,12 +60,18 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 5),
                   TextField(
                     controller: phoneController,
-                    // controller: phoneNum,
-                    keyboardType: TextInputType.phone,
+                    keyboardType:
+                        TextInputType.number, // เปลี่ยนจาก phone เป็น number
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // อนุญาตเฉพาะตัวเลข 0-9
+                    ],
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       fillColor: Colors.white,
                       filled: true,
+                      hintText:
+                          "กรอกหมายเลขโทรศัพท์", // เพิ่ม hint text (ถ้าต้องการ)
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -82,6 +85,7 @@ class _LoginPageState extends State<LoginPage> {
                       border: OutlineInputBorder(),
                       fillColor: Colors.white,
                       filled: true,
+                      hintText: "กรอกรหัสผ่าน", // เพิ่ม hint text (ถ้าต้องการ)
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -90,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton(
-                        onPressed: register,
+                        onPressed: () => register(),
                         child: const Text(
                           "ลงทะเบียนใหม่",
                           style: TextStyle(color: Colors.deepPurple),
