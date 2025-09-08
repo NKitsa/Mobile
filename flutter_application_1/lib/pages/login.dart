@@ -31,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     print(data);
     http
         .post(
-          Uri.parse('http://10.160.49.241:3333/customers/login'),
+          Uri.parse('http://192.168.1.105:3000/customers/login'),
           headers: {"Content-Type": "application/json; charset=utf-8"},
           body: jsonEncode(data),
         )

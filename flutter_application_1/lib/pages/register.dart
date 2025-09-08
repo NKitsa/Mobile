@@ -62,7 +62,7 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    final url = Uri.parse('http://10.160.49.241:3333/customers'); // แก้ไข URL
+    final url = Uri.parse('http://192.168.1.105:3000/customers'); // แก้ไข URL
     print('POST ไปยัง /customers: $url');
 
     http
