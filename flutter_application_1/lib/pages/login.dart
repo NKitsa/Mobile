@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/register.dart';
-// import 'package:flutter_application_1/pages/showtip.dart';
+import 'package:http/http.dart' as http;
 import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
