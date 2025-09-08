@@ -11,6 +11,7 @@ import 'package:flutter_application_1/model/req/req.dart';
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -38,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
 
     http
         .post(
-          Uri.parse('http://192.168.1.105:3000/customers/login'),
+          Uri.parse('$Uri/customers/login'),
           headers: {"Content-Type": "application/json; charset=utf-8"},
           body: customerLoginGetReqDartToJson(req), // ใช้ toJson function
         )
@@ -51,12 +52,13 @@ class _LoginPageState extends State<LoginPage> {
             log(customerLoginPostResponse.customer.email);
 
             // นำทางไป ShowTripPage
-            // Navigator.pushReplacement(
-            //   context,
-            //   MaterialPageRoute(
-            //     builder: (context) => ShowTripPage(cid: customerLoginPostResponse.customer.idx),
-            //   ),
-            // );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    ShowTripPage(cid: customerLoginPostResponse.customer.idx),
+              ),
+            );
           } else {
             log('Login failed: ${value.statusCode}');
           }
