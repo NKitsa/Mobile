@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class ShowTripPage extends StatefulWidget {
-  final int cid; // เพิ่ม parameter รับ customer ID
+  final int cid; // Customer ID
 
   const ShowTripPage({super.key, required this.cid});
 
@@ -10,27 +12,42 @@ class ShowTripPage extends StatefulWidget {
 }
 
 class _ShowTripPageState extends State<ShowTripPage> {
-  String selectedCategory = 'ทั้งหมด'; // เก็บหมวดหมู่ที่เลือก
+  String selectedCategory = 'ทั้งหมด';
+  List<dynamic> trips = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // สามารถใช้ widget.cid ในการโหลดข้อมูล trip ของลูกค้าคนนี้
-    print('Customer ID: ${widget.cid}');
-    loadTrips(); // เรียกฟังก์ชันโหลดข้อมูลทริป
+    loadTrips();
   }
 
-  void loadTrips() {
-    // TODO: เรียก API เพื่อโหลดข้อมูลทริป
-    // ใช้ widget.cid ในการดึงข้อมูลทริปของลูกค้าคนนี้
+  Future<void> loadTrips() async {
+    try {
+      final res = await http.get(Uri.parse('http://192.168.1.105:3000/trips'));
+      if (res.statusCode == 200) {
+        setState(() {
+          trips = jsonDecode(res.body);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print('โหลด trips ล้มเหลว: ${res.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error: $e');
+    }
   }
 
   void filterTripsByCategory(String category) {
     setState(() {
       selectedCategory = category;
     });
-    // TODO: กรองข้อมูลทริปตามหมวดหมู่
-    print('Filter trips by: $category');
   }
 
   @override
@@ -41,114 +58,134 @@ class _ShowTripPageState extends State<ShowTripPage> {
         title: const Text('รายการทริป'),
         backgroundColor: const Color(0xFFFDEEFF),
         elevation: 0,
-        automaticallyImplyLeading:
-            false, // ซ่อนปุ่ม back เพราะใช้ pushReplacement
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () {
-              // TODO: ไปหน้าโปรไฟล์ของลูกค้า
               print('Customer ID: ${widget.cid}');
             },
           ),
         ],
       ),
-      body: Container(
-        child: Column(
-          children: [
-            // Category Filter Buttons
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  spacing: 8,
-                  children: [
-                    _buildCategoryButton('ทั้งหมด'),
-                    _buildCategoryButton('เอเชีย'),
-                    _buildCategoryButton('ยุโรป'),
-                    _buildCategoryButton('อาเซียน'),
-                    _buildCategoryButton('ประเทศไทย'),
-                  ],
-                ),
+      body: Column(
+        children: [
+          // ปุ่ม filter
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildCategoryButton('ทั้งหมด'),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton('เอเชีย'),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton('ยุโรป'),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton('อาเซียน'),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton('ประเทศไทย'),
+                ],
               ),
             ),
+          ),
 
-            // Trip List
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'หมวดหมู่: $selectedCategory',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // TODO: แสดงรายการทริปจริง
-                    Expanded(
-                      child: Center(
+          // Trip List
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: trips.length,
+                    itemBuilder: (context, index) {
+                      final trip = trips[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 2,
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.flight_takeoff,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'กำลังโหลดทริป...',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 16,
+                            // รูปภาพ
+                            if (trip['coverimage'] != null)
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(16),
+                                ),
+                                child: Image.network(
+                                  trip['coverimage'],
+                                  height: 180,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (c, o, s) => Container(
+                                    height: 180,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Customer ID: ${widget.cid}',
-                              style: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 12,
+
+                            Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    trip['name'] ?? 'ไม่มีชื่อทริป',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    trip['country'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "ระยะเวลา ${trip['duration']} วัน",
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "ราคา ${trip['price']} บาท",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.deepPurple,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        // ไปหน้า detail
+                                        print('ดูรายละเอียด ${trip['name']}');
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.deepPurple,
+                                      ),
+                                      child: const Text("รายละเอียดเพิ่มเติม"),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'หน้าหลัก'),
-          BottomNavigationBarItem(icon: Icon(Icons.flight), label: 'ทริป'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'สิ่งที่ชอบ',
+                      );
+                    },
+                  ),
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'โปรไฟล์'),
         ],
-        onTap: (index) {
-          // TODO: จัดการการนำทาง
-          print('Bottom nav tapped: $index');
-        },
       ),
     );
   }
