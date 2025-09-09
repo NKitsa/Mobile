@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/pages/showdetail_trip.dart';
 import 'package:http/http.dart' as http;
 
 // โมเดล TripRes และฟังก์ชัน tripResFromJson ต้องมีในไฟล์นี้
@@ -156,45 +157,14 @@ class _ShowTripPageState extends State<ShowTripPage> {
                                     width: double.infinity,
                                     height: 150,
                                     fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        height: 150,
-                                        color: Colors.grey[300],
-                                        child: Center(
-                                          child: CircularProgressIndicator(
-                                            value:
-                                                loadingProgress
-                                                        .expectedTotalBytes !=
-                                                    null
-                                                ? loadingProgress
-                                                          .cumulativeBytesLoaded /
-                                                      loadingProgress
-                                                          .expectedTotalBytes!
-                                                : null,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              height: 150,
-                                              color: Colors.grey[300],
-                                              child: const Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.broken_image,
-                                                    size: 48,
-                                                  ),
-                                                  Text(
-                                                    'ไม่สามารถโหลดรูปภาพได้',
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
+                                    errorBuilder: (_, __, ___) => Container(
+                                      height: 150,
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        size: 48,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 Padding(
@@ -219,19 +189,31 @@ class _ShowTripPageState extends State<ShowTripPage> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'ราคา: ${_fmtPrice(trip.price)} บาท',
-                                            style: const TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
+                                      Text(
+                                        'ราคา: ${trip.price} บาท',
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      // 👇 เหลือแค่ปุ่มรายละเอียด
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  ShowDetailTripPage(
+                                                    idx: trip.idx,
+                                                  ), // ส่ง idx ไป
                                             ),
-                                          ),
-                                        ],
+                                          );
+                                        },
+                                        icon: const Icon(Icons.info_outline),
+                                        label: const Text('รายละเอียด'),
                                       ),
                                     ],
                                   ),
