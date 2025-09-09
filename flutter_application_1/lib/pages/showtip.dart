@@ -1,9 +1,10 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/config.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:flutter_application_1/pages/showdetail_trip.dart';
-import 'package:flutter_application_1/pages/profile.dart'; // ⬅️ เพิ่ม import หน้านี้
+import 'package:flutter_application_1/pages/profile.dart';
 
 // โมเดล TripRes และฟังก์ชัน tripResFromJson ต้องมีในไฟล์นี้
 import 'package:flutter_application_1/model/req/res/res_showtip.dart';
@@ -22,11 +23,16 @@ class _ShowTripPageState extends State<ShowTripPage> {
   List<TripRes> filteredTrips = []; // เก็บข้อมูลที่ถูกกรอง
   late Future<void> loadData;
   bool isLoading = false;
+  String url = '';
 
   @override
   void initState() {
     super.initState();
-    loadData = loadDataAsync();
+    // โหลด config ก่อนแล้วค่อยดึงข้อมูลจาก API
+    loadData = Configuration.getConfig().then((config) {
+      url = config['apiEndpoint'];
+      return loadDataAsync();
+    });
   }
 
   @override
@@ -39,7 +45,6 @@ class _ShowTripPageState extends State<ShowTripPage> {
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'profile') {
-                // ➜ ไปหน้าโปรไฟล์ พร้อมส่ง idx ของผู้ใช้ที่ล็อกอิน
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -209,8 +214,6 @@ class _ShowTripPageState extends State<ShowTripPage> {
                                         ),
                                       ),
                                       const SizedBox(height: 12),
-
-                                      // ปุ่มรายละเอียด ➜ เปิดหน้า showdetail_trip.dart โดยส่ง idx
                                       Align(
                                         alignment: Alignment.centerRight,
                                         child: OutlinedButton.icon(
@@ -268,7 +271,7 @@ class _ShowTripPageState extends State<ShowTripPage> {
   /// โหลดข้อมูลจาก API
   Future<void> loadDataAsync() async {
     try {
-      const endpoint = 'http://10.160.63.18:3000/trips';
+      final endpoint = '$url/trips'; 
       log('GET $endpoint');
 
       final res = await http.get(

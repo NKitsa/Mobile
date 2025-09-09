@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
 
     http
         .post(
-          Uri.parse('http://10.160.63.18:3000/customers/login'),
+          Uri.parse('$url/customers/login'),
           headers: {"Content-Type": "application/json; charset=utf-8"},
           body: customerLoginGetReqDartToJson(req), // ใช้ toJson function
         )

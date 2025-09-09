@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_application_1/config.dart';
 import 'package:flutter_application_1/model/req/res/res_showdetail_trip.dart';
 
 class ShowDetailTripPage extends StatefulWidget {
@@ -14,19 +15,24 @@ class ShowDetailTripPage extends StatefulWidget {
 class _ShowDetailTripPageState extends State<ShowDetailTripPage> {
   TripDetailRes? detail;
   late Future<void> loadData;
+  String url = '';
 
   @override
   void initState() {
     super.initState();
-    loadData = _loadDetail();
+    // โหลด config ก่อน แล้วค่อยดึงข้อมูล
+    loadData = Configuration.getConfig().then((config) {
+      url = config['apiEndpoint'];
+      return _loadDetail();
+    });
   }
 
   Future<void> _loadDetail() async {
-    final url = 'http://10.160.63.18:3000/trips/${widget.idx}';
-    log('GET $url');
+    final endpoint = '$url/trips/${widget.idx}'; // ✅ ใช้จาก config
+    log('GET $endpoint');
 
     final res = await http.get(
-      Uri.parse(url),
+      Uri.parse(endpoint),
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -54,7 +60,6 @@ class _ShowDetailTripPageState extends State<ShowDetailTripPage> {
             return const Center(child: Text('ไม่พบข้อมูล'));
           }
 
-          // ✅ แสดงข้อมูลจาก TripDetailRes
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
