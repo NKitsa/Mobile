@@ -1,7 +1,9 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/showdetail_trip.dart';
 import 'package:http/http.dart' as http;
+
+import 'package:flutter_application_1/pages/showdetail_trip.dart';
+import 'package:flutter_application_1/pages/profile.dart'; // ⬅️ เพิ่ม import หน้านี้
 
 // โมเดล TripRes และฟังก์ชัน tripResFromJson ต้องมีในไฟล์นี้
 import 'package:flutter_application_1/model/req/res/res_showtip.dart';
@@ -36,11 +38,20 @@ class _ShowTripPageState extends State<ShowTripPage> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                // ➜ ไปหน้าโปรไฟล์ พร้อมส่ง idx ของผู้ใช้ที่ล็อกอิน
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfilePage(idx: widget.cid),
+                  ),
+                );
+              } else if (value == 'logout') {
                 Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
               }
             },
             itemBuilder: (context) => const [
+              PopupMenuItem(value: 'profile', child: Text('โปรไฟล์')),
               PopupMenuItem(value: 'logout', child: Text('ออกจากระบบ')),
             ],
           ),
@@ -190,7 +201,7 @@ class _ShowTripPageState extends State<ShowTripPage> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'ราคา: ${trip.price} บาท',
+                                        'ราคา: ${_fmtPrice(trip.price)} บาท',
                                         style: const TextStyle(
                                           color: Colors.green,
                                           fontWeight: FontWeight.bold,
@@ -199,21 +210,24 @@ class _ShowTripPageState extends State<ShowTripPage> {
                                       ),
                                       const SizedBox(height: 12),
 
-                                      // 👇 เหลือแค่ปุ่มรายละเอียด
-                                      OutlinedButton.icon(
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  ShowDetailTripPage(
-                                                    idx: trip.idx,
-                                                  ), // ส่ง idx ไป
-                                            ),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.info_outline),
-                                        label: const Text('รายละเอียด'),
+                                      // ปุ่มรายละเอียด ➜ เปิดหน้า showdetail_trip.dart โดยส่ง idx
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: OutlinedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    ShowDetailTripPage(
+                                                      idx: trip.idx,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.info_outline),
+                                          label: const Text('รายละเอียด'),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -251,7 +265,7 @@ class _ShowTripPageState extends State<ShowTripPage> {
     });
   }
 
-  /// โหลดข้อมูลจาก API ชี้ตรงไปที่ 10.160.63.18
+  /// โหลดข้อมูลจาก API
   Future<void> loadDataAsync() async {
     try {
       const endpoint = 'http://10.160.63.18:3000/trips';
@@ -276,11 +290,16 @@ class _ShowTripPageState extends State<ShowTripPage> {
     }
   }
 
+  /// แสดงราคาแบบมีคอมม่า
   String _fmtPrice(num price) {
-    if (price is int || price == price.roundToDouble()) {
-      return price.toInt().toString();
+    final s = price.toInt().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final rev = s.length - i;
+      buf.write(s[i]);
+      if (rev > 1 && rev % 3 == 1) buf.write(',');
     }
-    return price.toStringAsFixed(0);
+    return buf.toString();
   }
 }
 
