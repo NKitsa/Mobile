@@ -89,3 +89,4 @@ flutter:
   # see https://flutter.dev/to/font-from-package
   assets:
     - asset\Zone25621029104150.jpg
+    - asset\config\config.json

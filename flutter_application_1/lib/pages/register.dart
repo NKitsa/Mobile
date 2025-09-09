@@ -27,7 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
     });
   }
 
-  void register() {
+  void register() async {
     String user = userController.text.trim();
     String phone = phoneController.text.trim();
     String email = emailController.text.trim();
@@ -79,7 +79,7 @@ class _RegisterPageState extends State<RegisterPage> {
       password: password,
     );
 
-    final endpoint = Uri.parse('http://10.160.63.18:3000/customers');
+    final endpoint = Uri.parse('$url/customers');
     print('POST ไปยัง /customers: $endpoint');
     print('ข้อมูลที่ส่ง: ${customerRegisterPostReqDartToJson(registerData)}');
 
