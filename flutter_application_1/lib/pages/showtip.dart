@@ -1,7 +1,12 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+// โมเดล TripRes และฟังก์ชัน tripResFromJson ต้องมีในไฟล์นี้
+import 'package:flutter_application_1/model/req/res/res_showtip.dart';
 
 class ShowTripPage extends StatefulWidget {
-  final int cid; // เพิ่ม parameter รับ customer ID
+  final int cid;
 
   const ShowTripPage({super.key, required this.cid});
 
@@ -10,161 +15,311 @@ class ShowTripPage extends StatefulWidget {
 }
 
 class _ShowTripPageState extends State<ShowTripPage> {
-  String selectedCategory = 'ทั้งหมด'; // เก็บหมวดหมู่ที่เลือก
+  List<TripRes> allTrips = []; // เก็บข้อมูลทริปทั้งหมด
+  List<TripRes> filteredTrips = []; // เก็บข้อมูลที่ถูกกรอง
+  late Future<void> loadData;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // สามารถใช้ widget.cid ในการโหลดข้อมูล trip ของลูกค้าคนนี้
-    print('Customer ID: ${widget.cid}');
-    loadTrips(); // เรียกฟังก์ชันโหลดข้อมูลทริป
-  }
-
-  void loadTrips() {
-    // TODO: เรียก API เพื่อโหลดข้อมูลทริป
-    // ใช้ widget.cid ในการดึงข้อมูลทริปของลูกค้าคนนี้
-  }
-
-  void filterTripsByCategory(String category) {
-    setState(() {
-      selectedCategory = category;
-    });
-    // TODO: กรองข้อมูลทริปตามหมวดหมู่
-    print('Filter trips by: $category');
+    loadData = loadDataAsync();
   }
 
   @override
   Widget build(BuildContext context) {
+    log('cid=${widget.cid}');
     return Scaffold(
-      backgroundColor: const Color(0xFFFDEEFF),
       appBar: AppBar(
         title: const Text('รายการทริป'),
-        backgroundColor: const Color(0xFFFDEEFF),
-        elevation: 0,
-        automaticallyImplyLeading:
-            false, // ซ่อนปุ่ม back เพราะใช้ pushReplacement
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // TODO: ไปหน้าโปรไฟล์ของลูกค้า
-              print('Customer ID: ${widget.cid}');
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+              }
             },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'logout', child: Text('ออกจากระบบ')),
+            ],
           ),
         ],
       ),
-      body: Container(
-        child: Column(
-          children: [
-            // Category Filter Buttons
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: SingleChildScrollView(
+      body: FutureBuilder<void>(
+        future: loadData,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('เกิดข้อผิดพลาด: ${snapshot.error}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        loadData = loadDataAsync();
+                      });
+                    },
+                    child: const Text('ลองใหม่'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  'ปลายทาง',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              // ปุ่ม filter
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
-                  spacing: 8,
                   children: [
-                    _buildCategoryButton('ทั้งหมด'),
-                    _buildCategoryButton('เอเชีย'),
-                    _buildCategoryButton('ยุโรป'),
-                    _buildCategoryButton('อาเซียน'),
-                    _buildCategoryButton('ประเทศไทย'),
+                    const SizedBox(width: 10),
+                    FilterButton(
+                      text: 'ทั้งหมด',
+                      onPressed: () => filterTrips(null),
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(width: 10),
+                    FilterButton(
+                      text: 'เอเชีย',
+                      onPressed: () => filterTrips('เอเชีย'),
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(width: 10),
+                    FilterButton(
+                      text: 'ยุโรป',
+                      onPressed: () => filterTrips('ยุโรป'),
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(width: 10),
+                    FilterButton(
+                      text: 'อาเซียน',
+                      onPressed: () => filterTrips('อาเซียน'),
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(width: 10),
+                    FilterButton(
+                      text: 'ประเทศไทย',
+                      onPressed: () => filterTrips('ประเทศไทย'),
+                      isLoading: isLoading,
+                    ),
+                    const SizedBox(width: 10),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
 
-            // Trip List
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'หมวดหมู่: $selectedCategory',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // TODO: แสดงรายการทริปจริง
-                    Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.flight_takeoff,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'กำลังโหลดทริป...',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Customer ID: ${widget.cid}',
-                              style: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+              // Trip list
+              Expanded(
+                child: filteredTrips.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'ไม่พบข้อมูลทริป',
+                          style: TextStyle(fontSize: 16),
                         ),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredTrips.length,
+                        itemBuilder: (context, index) {
+                          final trip = filteredTrips[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            elevation: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
+                                  child: Image.network(
+                                    trip.coverimage,
+                                    width: double.infinity,
+                                    height: 150,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        height: 150,
+                                        color: Colors.grey[300],
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            value:
+                                                loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                          .cumulativeBytesLoaded /
+                                                      loadingProgress
+                                                          .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              height: 150,
+                                              color: Colors.grey[300],
+                                              child: const Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.broken_image,
+                                                    size: 48,
+                                                  ),
+                                                  Text(
+                                                    'ไม่สามารถโหลดรูปภาพได้',
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        trip.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'ปลายทาง: ${trip.destinationZone}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'ราคา: ${_fmtPrice(trip.price)} บาท',
+                                            style: const TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                ),
               ),
-            ),
-          ],
-        ),
-      ),
-
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'หน้าหลัก'),
-          BottomNavigationBarItem(icon: Icon(Icons.flight), label: 'ทริป'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'สิ่งที่ชอบ',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'โปรไฟล์'),
-        ],
-        onTap: (index) {
-          // TODO: จัดการการนำทาง
-          print('Bottom nav tapped: $index');
+            ],
+          );
         },
       ),
     );
   }
 
-  Widget _buildCategoryButton(String category) {
-    final isSelected = selectedCategory == category;
+  /// ฟิลเตอร์รายการตาม destination_zone
+  void filterTrips(String? zone) {
+    setState(() {
+      isLoading = true;
+    });
 
+    Future.delayed(const Duration(milliseconds: 300), () {
+      setState(() {
+        if (zone == null) {
+          filteredTrips = List.from(allTrips);
+        } else {
+          filteredTrips = allTrips
+              .where((trip) => (trip.destinationZone).trim() == zone)
+              .toList();
+        }
+        isLoading = false;
+      });
+    });
+  }
+
+  /// โหลดข้อมูลจาก API ชี้ตรงไปที่ 10.160.63.18
+  Future<void> loadDataAsync() async {
+    try {
+      const endpoint = 'http://10.160.63.18:3000/trips';
+      log('GET $endpoint');
+
+      final res = await http.get(
+        Uri.parse(endpoint),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      log('Status: ${res.statusCode}');
+      if (res.statusCode == 200) {
+        allTrips = tripResFromJson(res.body);
+        filteredTrips = List.from(allTrips);
+        log('Loaded trips: ${allTrips.length}');
+      } else {
+        throw Exception('Failed to load trips: ${res.statusCode} ${res.body}');
+      }
+    } catch (error) {
+      log('Error loading trips: $error');
+      rethrow;
+    }
+  }
+
+  String _fmtPrice(num price) {
+    if (price is int || price == price.roundToDouble()) {
+      return price.toInt().toString();
+    }
+    return price.toStringAsFixed(0);
+  }
+}
+
+// ปุ่มกรอง
+class FilterButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final bool isLoading;
+
+  const FilterButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return FilledButton(
-      onPressed: () => filterTripsByCategory(category),
-      style: FilledButton.styleFrom(
-        backgroundColor: isSelected ? Colors.deepPurple : Colors.grey.shade300,
-        foregroundColor: isSelected ? Colors.white : Colors.black87,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      child: Text(category),
+      onPressed: isLoading ? null : onPressed,
+      child: Text(text),
     );
   }
 }

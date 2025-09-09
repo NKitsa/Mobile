@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_application_1/config.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/model/req/register.dart';
 
@@ -17,8 +18,14 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController autpassController = TextEditingController();
-
+  String url = '';
   String errorText = "";
+  void initState() {
+    super.initState();
+    Configuration.getConfig().then((config) {
+      url = config['apiEndpoint'];
+    });
+  }
 
   void register() {
     String user = userController.text.trim();
@@ -72,13 +79,13 @@ class _RegisterPageState extends State<RegisterPage> {
       password: password,
     );
 
-    final url = Uri.parse('http://192.168.1.105:3000/customers');
-    print('POST ไปยัง /customers: $url');
+    final endpoint = Uri.parse('http://10.160.63.18:3000/customers');
+    print('POST ไปยัง /customers: $endpoint');
     print('ข้อมูลที่ส่ง: ${customerRegisterPostReqDartToJson(registerData)}');
 
     http
         .post(
-          url,
+          endpoint,
           headers: {'Content-Type': 'application/json'},
           body: customerRegisterPostReqDartToJson(
             registerData,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // เพิ่มบรรทัดนี้
+import 'package:flutter_application_1/config.dart';
 import 'package:flutter_application_1/model/req/res/res.dart';
 import 'package:flutter_application_1/pages/register.dart';
 import 'package:flutter_application_1/pages/showtip.dart';
@@ -19,9 +20,17 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   String text = "";
   int number = 0;
+  String url = '';
   TextEditingController phoneNum = TextEditingController();
   TextEditingController phoneController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  void initState() {
+    super.initState();
+    Configuration.getConfig().then((config) {
+      url = config['apiEndpoint'];
+    });
+  }
 
   void register() {
     Navigator.push(
@@ -39,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
 
     http
         .post(
-          Uri.parse('$Uri/customers/login'),
+          Uri.parse('http://10.160.63.18:3000/customers/login'),
           headers: {"Content-Type": "application/json; charset=utf-8"},
           body: customerLoginGetReqDartToJson(req), // ใช้ toJson function
         )
