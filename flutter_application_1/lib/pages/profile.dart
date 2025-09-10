@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/config.dart';
 import 'package:http/http.dart' as http;
 
 // โมเดล GET โปรไฟล์
@@ -18,7 +19,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  static const String _base = "http://10.160.63.18:3000";
+  String _base = ""; // จะไปโหลดจาก config.json
 
   TripDetailRes? user;
   late Future<void> loadData;
@@ -32,7 +33,13 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    loadData = _loadProfile();
+    // โหลดค่า apiEndpoint จาก config
+    Configuration.getConfig().then((config) {
+      setState(() {
+        _base = config['apiEndpoint'];
+        loadData = _loadProfile(); // เริ่มโหลดข้อมูลหลังจากได้ค่า _base แล้ว
+      });
+    });
   }
 
   Future<void> _loadProfile() async {
